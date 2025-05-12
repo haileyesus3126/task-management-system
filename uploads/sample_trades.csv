@@ -1,0 +1,5 @@
+Symbol,Date,EntryPrice,ExitPrice,Profit,Volume,Strategy,Tags
+AAPL,2025-05-01,123.45,127.8,4.35,100,Breakout,"long,trend"
+TSLA,2025-05-02,700.0,720.0,20.0,50,Reversal,"short,squeeze"
+GOOG,2025-05-03,2800.0,2780.0,-20.0,10,Scalping,"loss,quick"
+MSFT,2025-05-04,250.0,255.0,5.0,75,TrendFollowing,"long,steady"
