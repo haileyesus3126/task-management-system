@@ -1,31 +1,65 @@
 package com.Haile.TaskManagementSystem.model;
 
 import jakarta.persistence.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "tasks")
 public class Task {
 
+    public enum Priority {
+        LOW,
+        MEDIUM,
+        HIGH,
+        CRITICAL
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
+    @ElementCollection
+    private List<String> assignedTo;
+
     private String title;
     private String description;
-    private String assignedTo;
     private String status;
 
-    private String fileName; // ✅ NEW FIELD
+    // ✅ Changed from single to multiple file support
+    @ElementCollection
+    private List<String> fileNames;
 
     private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime updatedAt;
 
-    // Getters and Setters
+    private boolean deleted = false;
+
+    @Enumerated(EnumType.STRING)
+    private Priority priority;
+
+    private LocalDate dueDate;
+
+    private int progress;
+
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL)
+    private List<TaskAssignment> assignments;
+
+    // --- Getters and Setters ---
+
     public int getId() {
         return id;
     }
     public void setId(int id) {
         this.id = id;
+    }
+
+    public List<String> getAssignedTo() {
+        return assignedTo;
+    }
+    public void setAssignedTo(List<String> assignedTo) {
+        this.assignedTo = assignedTo;
     }
 
     public String getTitle() {
@@ -42,18 +76,18 @@ public class Task {
         this.description = description;
     }
 
-    public String getAssignedTo() {
-        return assignedTo;
-    }
-    public void setAssignedTo(String assignedTo) {
-        this.assignedTo = assignedTo;
-    }
-
     public String getStatus() {
         return status;
     }
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public List<String> getFileNames() {
+        return fileNames;
+    }
+    public void setFileNames(List<String> fileNames) {
+        this.fileNames = fileNames;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -63,10 +97,45 @@ public class Task {
         this.createdAt = createdAt;
     }
 
-    public String getFileName() {
-        return fileName;
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
     }
-    public void setFileName(String fileName) {
-        this.fileName = fileName;
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public Priority getPriority() {
+        return priority;
+    }
+    public void setPriority(Priority priority) {
+        this.priority = priority;
+    }
+
+    public LocalDate getDueDate() {
+        return dueDate;
+    }
+    public void setDueDate(LocalDate dueDate) {
+        this.dueDate = dueDate;
+    }
+
+    public int getProgress() {
+        return progress;
+    }
+    public void setProgress(int progress) {
+        this.progress = progress;
+    }
+
+    public boolean isDeleted() {
+        return deleted;
+    }
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
+    }
+
+    public List<TaskAssignment> getAssignments() {
+        return assignments;
+    }
+    public void setAssignments(List<TaskAssignment> assignments) {
+        this.assignments = assignments;
     }
 }

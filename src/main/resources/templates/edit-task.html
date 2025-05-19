@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Task</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f0f8ff, #ffffff);
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .card {
+            max-width: 750px;
+            margin: 60px auto;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 0 18px rgba(0, 0, 0, 0.05);
+        }
+
+        h2 {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            color: #0d6efd;
+        }
+
+        h2 i {
+            margin-right: 10px;
+        }
+
+        .form-label {
+            font-weight: 500;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .file-list {
+            margin-top: 10px;
+        }
+
+        .file-list a {
+            display: block;
+            color: #0d6efd;
+            text-decoration: none;
+            margin-bottom: 4px;
+        }
+
+        .file-list a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <h2><i class="bi bi-pencil-square"></i> Edit Task</h2>
+
+        <div th:if="${success}" class="alert alert-success text-center" th:text="${success}"></div>
+        <div th:if="${error}" class="alert alert-danger text-center" th:text="${error}"></div>
+
+        <form th:action="@{/tasks/update}" th:object="${task}" method="post">
+            <input type="hidden" th:field="*{id}" />
+
+            <div class="mb-3">
+                <label for="title" class="form-label">Title</label>
+                <input type="text" th:field="*{title}" class="form-control" id="title" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <textarea th:field="*{description}" class="form-control" id="description" rows="3" required></textarea>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="priority" class="form-label">Priority</label>
+                    <select th:field="*{priority}" class="form-select" id="priority" required>
+                        <option th:value="CRITICAL">Critical</option>
+                        <option th:value="HIGH">High</option>
+                        <option th:value="MEDIUM">Medium</option>
+                        <option th:value="LOW">Low</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label for="dueDate" class="form-label">Due Date</label>
+                    <input type="date" th:field="*{dueDate}" class="form-control" id="dueDate" required>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="progress" class="form-label">Progress (%)</label>
+                <input type="number" th:field="*{progress}" class="form-control" id="progress" min="0" max="100">
+            </div>
+
+            <div class="mb-3">
+                <label for="assignedTo" class="form-label">Assign To</label>
+                <select multiple th:field="*{assignedTo}" class="form-select" id="assignedTo">
+                    <option th:each="user : ${users}" th:value="${user.username}" th:text="${user.username}"></option>
+                </select>
+                <div class="form-text text-muted">Hold Ctrl (or Cmd) to select multiple users.</div>
+            </div>
+
+            <!-- Uploaded Files Preview -->
+            <div class="mb-4">
+                <label class="form-label">Uploaded Files</label>
+                <div class="file-list">
+                    <div th:if="${task.fileNames != null and !task.fileNames.isEmpty()}">
+                        <div th:each="fileName : ${task.fileNames}">
+                            <a th:href="@{/tasks/download/{filename}(filename=${fileName})}" target="_blank">
+                                <i class="bi bi-paperclip"></i> <span th:text="${fileName}">file.pdf</span>
+                            </a>
+                        </div>
+                    </div>
+                    <div th:if="${task.fileNames == null or task.fileNames.isEmpty()}" class="text-muted small">
+                        No files uploaded.
+                    </div>
+                </div>
+            </div>
+
+            <div class="btn-group mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Update Task
+                </button>
+                <a th:href="@{/dashboard}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>
