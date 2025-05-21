@@ -32,16 +32,16 @@
         <div class="table-responsive">
             <table class="table table-bordered table-hover align-middle text-center">
                 <thead class="table-light">
-                <tr>
-                    <th>Title</th>
-                    <th>Description</th>
-                    <th>Priority</th>
-                    <th>Due Date</th>
-                    <th>Status</th>
-                    <th>My File</th>
-                    <th>Task Files</th> <!-- ✅ Added new column -->
-                    <th>Upload Update</th>
-                </tr>
+                    <tr>
+                        <th>Title</th>
+                        <th>Description</th>
+                        <th>Priority</th>
+                        <th>Due Date</th>
+                        <th>Status</th>
+                        <th>My File</th>
+                        <th>Task Files</th>
+                        <th>Upload Update</th>
+                    </tr>
                 </thead>
                 <tbody>
                 <tr th:each="a : ${assignments}">
@@ -72,21 +72,21 @@
                     </td>
 
                     <td>
-                        <span th:if="${a.fileName != null}">
-                            <a th:href="@{'/uploads/' + ${a.fileName}}" th:text="${a.fileName}" target="_blank">Download</a>
+                       <span th:if="${a.fileName != null}">
+						<a th:href="@{/tasks/download-user-file/{id}(id=${a.id})}"
+						           th:text="${a.fileName}" target="_blank">Download</a>
                         </span>
                         <span th:if="${a.fileName == null}">No file</span>
                     </td>
 
-                    <!-- ✅ New Task Files Section -->
                     <td>
-                        <ul th:if="${a.task?.fileNames != null}" class="list-unstyled mb-0">
-                            <li th:each="fileName : ${a.task.fileNames}">
-                                <a th:href="@{/tasks/download/{filename}(filename=${fileName})}"
-                                   th:text="${fileName}" target="_blank"></a>
+                        <ul th:if="${a.task?.files != null}" class="list-unstyled mb-0">
+                            <li th:each="file : ${a.task.files}">
+                                <a th:href="@{/tasks/download-db/{fileId}(fileId=${file.id})}"
+                                   th:text="${file.fileName}" target="_blank"></a>
                             </li>
                         </ul>
-                        <span th:if="${a.task?.fileNames == null || a.task.fileNames.isEmpty()}">No files</span>
+                        <span th:if="${a.task?.files == null or a.task.files.isEmpty()}">No files</span>
                     </td>
 
                     <td>

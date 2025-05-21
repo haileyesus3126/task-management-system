@@ -2,17 +2,16 @@ package com.Haile.TaskManagementSystem.controller;
 
 import com.Haile.TaskManagementSystem.model.Task;
 import com.Haile.TaskManagementSystem.model.TaskAssignment;
+import com.Haile.TaskManagementSystem.model.TaskFile;
 import com.Haile.TaskManagementSystem.repository.TaskAssignmentRepository;
+import com.Haile.TaskManagementSystem.repository.TaskFileRepository;
 import com.Haile.TaskManagementSystem.repository.TaskRepository;
 import com.Haile.TaskManagementSystem.repository.UserRepository;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -22,15 +21,10 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
+import java.util.Optional;
 
 @Controller
 @RequestMapping("/tasks")
@@ -38,6 +32,7 @@ public class TaskController {
 
     @Autowired private TaskRepository taskRepository;
     @Autowired private TaskAssignmentRepository taskAssignmentRepository;
+    @Autowired private TaskFileRepository taskFileRepository;
     @Autowired private UserRepository userRepository;
 
     @GetMapping("/assign")
@@ -53,7 +48,7 @@ public class TaskController {
 
     @PostMapping("/assign")
     public String assignTask(@ModelAttribute Task task,
-                             @RequestParam("files") MultipartFile[] files,
+                             @RequestParam("uploadedFiles") MultipartFile[] uploadedFiles,
                              BindingResult result,
                              RedirectAttributes redirectAttributes) throws IOException {
         if (result.hasErrors()) {
@@ -61,31 +56,28 @@ public class TaskController {
             return "redirect:/tasks/assign";
         }
 
-        List<String> uploadedFileNames = new ArrayList<>();
-        if (files != null && files.length > 0) {
-            String uploadPath = System.getProperty("user.dir") + File.separator + "uploads";
-            File uploadDir = new File(uploadPath);
-            if (!uploadDir.exists()) uploadDir.mkdirs();
-
-            for (MultipartFile file : files) {
-                if (file != null && !file.isEmpty()) {
-                    String contentType = file.getContentType();
-                    if (contentType == null || (!contentType.startsWith("image/") && !contentType.equals("application/pdf"))) {
-                        redirectAttributes.addFlashAttribute("error", "Invalid file type. Only images and PDFs allowed.");
-                        return "redirect:/tasks/assign";
-                    }
-                    String uniqueFileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
-                    file.transferTo(new File(uploadDir, uniqueFileName));
-                    uploadedFileNames.add(uniqueFileName);
-                }
-            }
-        }
-
-        task.setFileNames(uploadedFileNames);
         task.setStatus("Assigned");
         task.setCreatedAt(LocalDateTime.now());
         task.setUpdatedAt(LocalDateTime.now());
         Task savedTask = taskRepository.save(task);
+
+        if (uploadedFiles != null && uploadedFiles.length > 0) {
+            for (MultipartFile file : uploadedFiles) {
+                if (file != null && !file.isEmpty()) {
+                    String contentType = file.getContentType();
+                    if (contentType == null || (!contentType.startsWith("image/") && !contentType.equals("application/pdf"))) {
+                        continue;
+                    }
+                    TaskFile taskFile = new TaskFile();
+                    taskFile.setFileName(file.getOriginalFilename());
+                    taskFile.setContentType(contentType);
+                    taskFile.setData(file.getBytes());
+                    taskFile.setUploadedAt(LocalDateTime.now());
+                    taskFile.setTask(savedTask);
+                    taskFileRepository.save(taskFile);
+                }
+            }
+        }
 
         if (task.getAssignedTo() != null) {
             for (String username : task.getAssignedTo()) {
@@ -96,8 +88,54 @@ public class TaskController {
                 taskAssignmentRepository.save(assignment);
             }
         }
-        redirectAttributes.addFlashAttribute("success", "Task assigned successfully.");
+
+        redirectAttributes.addFlashAttribute("success", "Task assigned with file(s) successfully.");
         return "redirect:/dashboard";
+    }
+
+    @GetMapping("/view-files")
+    public String viewTaskFiles(Model model, HttpSession session) {
+        String role = (String) session.getAttribute("role");
+        if (role == null || !(role.equalsIgnoreCase("Administrator") || role.equalsIgnoreCase("Supervisor"))) {
+            return "redirect:/login";
+        }
+        List<TaskFile> files = taskFileRepository.findAll();
+        model.addAttribute("files", files);
+        return "view-task-files";
+    }
+
+    @PostMapping("/review-task")
+    public String reviewTask(@RequestParam int taskId,
+                             @RequestParam String username,
+                             HttpSession session,
+                             RedirectAttributes redirectAttributes) {
+        String role = (String) session.getAttribute("role");
+        if (role == null) return "redirect:/login";
+
+        TaskAssignment assignment = taskAssignmentRepository.findByTaskIdAndUsername(taskId, username);
+        if (assignment == null) {
+            redirectAttributes.addFlashAttribute("error", "Assignment not found.");
+            return "redirect:/tasks/all-assignments";
+        }
+
+        String currentStatus = assignment.getStatus();
+        String newStatus = null;
+        if (role.equalsIgnoreCase("Supervisor") && currentStatus.equalsIgnoreCase("Assigned")) {
+            newStatus = "Supervisor Reviewed";
+        } else if (role.equalsIgnoreCase("Administrator") &&
+                (currentStatus.equalsIgnoreCase("Assigned") || currentStatus.equalsIgnoreCase("Supervisor Reviewed"))) {
+            newStatus = "Admin Reviewed";
+        }
+
+        if (newStatus == null) {
+            redirectAttributes.addFlashAttribute("error", "Invalid review status.");
+            return "redirect:/tasks/all-assignments";
+        }
+
+        assignment.setStatus(newStatus);
+        taskAssignmentRepository.save(assignment);
+        redirectAttributes.addFlashAttribute("success", "Reviewed as: " + newStatus);
+        return "redirect:/tasks/all-assignments";
     }
 
     @GetMapping("/my-tasks")
@@ -120,7 +158,7 @@ public class TaskController {
         String username = (String) session.getAttribute("username");
 
         if (assignment == null || !assignment.getUsername().equals(username)) {
-            redirectAttributes.addFlashAttribute("error", "Invalid assignment or permission denied.");
+            redirectAttributes.addFlashAttribute("error", "Unauthorized update attempt.");
             return "redirect:/tasks/my-tasks";
         }
 
@@ -128,19 +166,47 @@ public class TaskController {
         if (file != null && !file.isEmpty()) {
             String contentType = file.getContentType();
             if (contentType == null || (!contentType.startsWith("image/") && !contentType.equals("application/pdf"))) {
-                redirectAttributes.addFlashAttribute("error", "Invalid file type. Only images and PDFs allowed.");
+                redirectAttributes.addFlashAttribute("error", "Only images and PDFs are allowed.");
                 return "redirect:/tasks/my-tasks";
             }
-            String uploadPath = System.getProperty("user.dir") + File.separator + "uploads";
-            File uploadDir = new File(uploadPath);
-            if (!uploadDir.exists()) uploadDir.mkdirs();
-            String uniqueFileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
-            file.transferTo(new File(uploadDir, uniqueFileName));
-            assignment.setFileName(uniqueFileName);
+            String uniqueName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+            assignment.setFileName(uniqueName);
+            assignment.setContentType(contentType);
+            assignment.setFileContent(file.getBytes());
         }
+
+        assignment.setUpdatedAt(LocalDateTime.now());
         taskAssignmentRepository.save(assignment);
         redirectAttributes.addFlashAttribute("success", "Assignment updated successfully.");
         return "redirect:/tasks/my-tasks";
+    }
+
+    @GetMapping("/preview-image/{fileId}")
+    @ResponseBody
+    public ResponseEntity<byte[]> previewImage(@PathVariable int fileId) {
+        Optional<TaskFile> fileOpt = taskFileRepository.findById(fileId);
+        if (fileOpt.isEmpty()) return ResponseEntity.notFound().build();
+
+        TaskFile file = fileOpt.get();
+        if (!file.getContentType().startsWith("image/")) return ResponseEntity.badRequest().build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, file.getContentType())
+                .body(file.getData());
+    }
+
+    @GetMapping("/preview-pdf/{fileId}")
+    public ResponseEntity<Resource> previewPdf(@PathVariable int fileId) {
+        Optional<TaskFile> fileOpt = taskFileRepository.findById(fileId);
+        if (fileOpt.isEmpty()) return ResponseEntity.notFound().build();
+
+        TaskFile file = fileOpt.get();
+        if (!file.getContentType().equals("application/pdf")) return ResponseEntity.badRequest().build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + file.getFileName() + "\"")
+                .header(HttpHeaders.CONTENT_TYPE, file.getContentType())
+                .body(new ByteArrayResource(file.getData()));
     }
 
     @GetMapping("/all-assignments")
@@ -155,51 +221,9 @@ public class TaskController {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
         Page<TaskAssignment> assignmentsPage = taskAssignmentRepository.findAll(pageable);
-
         model.addAttribute("assignments", assignmentsPage);
         model.addAttribute("role", role);
         return "admin-assignments";
-    }
-
-    @PostMapping("/review-task")
-    public String reviewTask(@RequestParam int taskId,
-                             @RequestParam String username,
-                             HttpSession session,
-                             RedirectAttributes redirectAttributes) {
-        String role = (String) session.getAttribute("role");
-        if (role == null) return "redirect:/login";
-
-        TaskAssignment assignment = taskAssignmentRepository.findByTaskIdAndUsername(taskId, username);
-        if (assignment == null) {
-            redirectAttributes.addFlashAttribute("error", "Assignment not found for the user.");
-            return "redirect:/tasks/all-assignments";
-        }
-
-        String currentStatus = assignment.getStatus();
-        if (currentStatus != null) currentStatus = currentStatus.trim().toLowerCase();
-        else {
-            redirectAttributes.addFlashAttribute("error", "Assignment has no status.");
-            return "redirect:/tasks/all-assignments";
-        }
-
-        String newStatus = null;
-        if (role.equalsIgnoreCase("Supervisor") && currentStatus.equals("assigned")) {
-            newStatus = "Supervisor Reviewed";
-        } else if (role.equalsIgnoreCase("Administrator") &&
-                (currentStatus.equals("assigned") || currentStatus.equals("supervisor reviewed"))) {
-            newStatus = "Admin Reviewed";
-        }
-
-        if (newStatus == null) {
-            redirectAttributes.addFlashAttribute("error", "You cannot review this task in its current state.");
-            return "redirect:/tasks/all-assignments";
-        }
-
-        assignment.setStatus(newStatus);
-        taskAssignmentRepository.save(assignment);
-
-        redirectAttributes.addFlashAttribute("success", "Task reviewed successfully as " + newStatus + ".");
-        return "redirect:/tasks/all-assignments";
     }
 
     @GetMapping("/edit/{id}")
@@ -222,7 +246,7 @@ public class TaskController {
     public String updateTask(@ModelAttribute Task task, RedirectAttributes redirectAttributes) {
         task.setUpdatedAt(LocalDateTime.now());
         taskRepository.save(task);
-        redirectAttributes.addFlashAttribute("success", "Task updated successfully.");
+        redirectAttributes.addFlashAttribute("success", "Task updated.");
         return "redirect:/dashboard";
     }
 
@@ -232,23 +256,39 @@ public class TaskController {
         if (role == null || !(role.equalsIgnoreCase("Administrator") || role.equalsIgnoreCase("Supervisor"))) {
             return "redirect:/login";
         }
+
         if (!taskRepository.existsById(id)) {
             redirectAttributes.addFlashAttribute("error", "Task not found.");
         } else {
             taskRepository.deleteById(id);
-            redirectAttributes.addFlashAttribute("success", "Task deleted successfully.");
+            redirectAttributes.addFlashAttribute("success", "Task deleted.");
         }
         return "redirect:/dashboard";
     }
+    @GetMapping("/download-user-file/{assignmentId}")
+    public ResponseEntity<Resource> downloadUserFile(@PathVariable int assignmentId) {
+        Optional<TaskAssignment> opt = taskAssignmentRepository.findById(assignmentId);
+        if (opt.isEmpty()) return ResponseEntity.notFound().build();
 
-    @GetMapping("/download/{filename:.+}")
-    public ResponseEntity<Resource> downloadFile(@PathVariable String filename) throws MalformedURLException {
-        Path path = Paths.get(System.getProperty("user.dir"), "uploads").resolve(filename);
-        Resource resource = new UrlResource(path.toUri());
-        if (!resource.exists() || !resource.isReadable()) return ResponseEntity.notFound().build();
+        TaskAssignment assignment = opt.get();
+        if (assignment.getFileContent() == null) return ResponseEntity.notFound().build();
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resource.getFilename() + "\"")
-                .body(resource);
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + assignment.getFileName() + "\"")
+            .header(HttpHeaders.CONTENT_TYPE, assignment.getContentType())
+            .body(new ByteArrayResource(assignment.getFileContent()));
+    }
+
+
+    @GetMapping("/download-db/{fileId}")
+    public ResponseEntity<Resource> downloadFileFromDb(@PathVariable int fileId) {
+        Optional<TaskFile> taskFileOpt = taskFileRepository.findById(fileId);
+        if (taskFileOpt.isEmpty()) return ResponseEntity.notFound().build();
+
+        TaskFile file = taskFileOpt.get();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getFileName() + "\"")
+                .header(HttpHeaders.CONTENT_TYPE, file.getContentType())
+                .body(new ByteArrayResource(file.getData()));
     }
 }

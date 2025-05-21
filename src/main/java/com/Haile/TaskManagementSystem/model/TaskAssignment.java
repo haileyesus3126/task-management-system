@@ -2,46 +2,43 @@ package com.Haile.TaskManagementSystem.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Entity
+@Table(name = "task_assignments")
 public class TaskAssignment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
-    @ManyToOne
-    @JoinColumn(name = "task_id")
-    private Task task;
-
     private String username;
-
-    private String status = "Assigned";
-
+    private String status;
     private String fileName;
 
-    private String comment;
-
+    private LocalDateTime updatedAt;
     private LocalDateTime submittedAt;
+
+    private String comment;
 
     private int progress;
 
     private boolean deleted = false;
 
-    private LocalDateTime updatedAt;
+    // ✅ NEW: User-uploaded file content
+    @Lob
+    @Column(columnDefinition = "LONGBLOB")
+    private byte[] fileContent;
 
-    // ✅ NEW: List of comments for this assignment
-    @OneToMany(mappedBy = "assignment", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<TaskComment> comments;
+    private String contentType;
+
+    @ManyToOne
+    @JoinColumn(name = "task_id")
+    private Task task;
 
     // --- Getters and Setters ---
 
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
-
-    public Task getTask() { return task; }
-    public void setTask(Task task) { this.task = task; }
 
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
@@ -52,11 +49,14 @@ public class TaskAssignment {
     public String getFileName() { return fileName; }
     public void setFileName(String fileName) { this.fileName = fileName; }
 
-    public String getComment() { return comment; }
-    public void setComment(String comment) { this.comment = comment; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
     public LocalDateTime getSubmittedAt() { return submittedAt; }
     public void setSubmittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; }
+
+    public String getComment() { return comment; }
+    public void setComment(String comment) { this.comment = comment; }
 
     public int getProgress() { return progress; }
     public void setProgress(int progress) { this.progress = progress; }
@@ -64,9 +64,12 @@ public class TaskAssignment {
     public boolean isDeleted() { return deleted; }
     public void setDeleted(boolean deleted) { this.deleted = deleted; }
 
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public byte[] getFileContent() { return fileContent; }
+    public void setFileContent(byte[] fileContent) { this.fileContent = fileContent; }
 
-    public List<TaskComment> getComments() { return comments; }
-    public void setComments(List<TaskComment> comments) { this.comments = comments; }
+    public String getContentType() { return contentType; }
+    public void setContentType(String contentType) { this.contentType = contentType; }
+
+    public Task getTask() { return task; }
+    public void setTask(Task task) { this.task = task; }
 }

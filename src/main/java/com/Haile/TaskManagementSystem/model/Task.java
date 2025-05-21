@@ -1,8 +1,10 @@
 package com.Haile.TaskManagementSystem.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -21,15 +23,14 @@ public class Task {
     private int id;
 
     @ElementCollection
-    private List<String> assignedTo;
+    private List<String> assignedTo = new ArrayList<>();
 
     private String title;
     private String description;
     private String status;
 
-    // ✅ Changed from single to multiple file support
     @ElementCollection
-    private List<String> fileNames;
+    private List<String> fileNames = new ArrayList<>(); // Optional legacy field
 
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime updatedAt;
@@ -43,8 +44,14 @@ public class Task {
 
     private int progress;
 
+    // ✅ Remove orphanRemoval to prevent deletion during updates
+    @JsonIgnore
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL)
-    private List<TaskAssignment> assignments;
+    private List<TaskFile> files = new ArrayList<>();
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL)
+    private List<TaskAssignment> assignments = new ArrayList<>();
 
     // --- Getters and Setters ---
 
@@ -130,6 +137,13 @@ public class Task {
     }
     public void setDeleted(boolean deleted) {
         this.deleted = deleted;
+    }
+
+    public List<TaskFile> getFiles() {
+        return files;
+    }
+    public void setFiles(List<TaskFile> files) {
+        this.files = files;
     }
 
     public List<TaskAssignment> getAssignments() {

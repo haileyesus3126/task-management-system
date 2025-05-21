@@ -9,13 +9,11 @@
             font-family: 'Segoe UI', sans-serif;
             min-height: 100vh;
         }
-
         .card {
             max-width: 700px;
             margin: 60px auto;
             border-radius: 12px;
         }
-
         select[multiple] {
             height: 160px;
         }
@@ -27,7 +25,6 @@
     <div class="card shadow p-4">
         <h3 class="text-center text-primary mb-4">Assign New Task</h3>
 
-        <!-- ✅ Enctype for file upload -->
         <form th:action="@{/tasks/assign}" method="post" th:object="${task}" enctype="multipart/form-data">
 
             <div class="mb-3">
@@ -51,7 +48,6 @@
                 <small class="form-text text-muted">Hold Ctrl (Windows) or Cmd (Mac) to select multiple users</small>
             </div>
 
-            <!-- ✅ Priority Dropdown -->
             <div class="mb-3">
                 <label class="form-label">Priority</label>
                 <select class="form-select" th:field="*{priority}" required>
@@ -63,16 +59,15 @@
                 </select>
             </div>
 
-            <!-- ✅ Due Date Input -->
             <div class="mb-3">
                 <label class="form-label">Due Date</label>
                 <input type="date" class="form-control" th:field="*{dueDate}" required>
             </div>
 
-            <!-- ✅ File Upload Input (Multiple Files) -->
+            <!-- ✅ Correct field name for uploaded files -->
             <div class="mb-3">
                 <label class="form-label">Attach Files (optional)</label>
-                <input type="file" class="form-control" name="files" multiple>
+                <input type="file" class="form-control" name="uploadedFiles" multiple>
                 <small class="form-text text-muted">You can select multiple files (images or PDFs)</small>
             </div>
 
