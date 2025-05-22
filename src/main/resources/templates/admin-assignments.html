@@ -29,7 +29,7 @@
 
         <div class="top-bar">
             <h3 class="text-primary m-0">All Task Assignments</h3>
-            <a href="/dashboard" class="btn btn-outline-primary btn-sm">⬅ Back to Dashboard</a>
+            <a th:href="@{/tasks/dashboard}" class="btn btn-outline-primary btn-sm">⬅ Back to Dashboard</a>
         </div>
 
         <div th:if="${success}" class="alert alert-success text-center" th:text="${success}"></div>
@@ -84,9 +84,9 @@
                     <td>
                         <span th:if="${a.fileName != null}">
 							<a th:href="@{/tasks/download-user-file/{id}(id=${a.id})}"
-							           th:text="${a.fileName}" target="_blank">Download</a>
+							   th:text="${a.fileName}" target="_blank">Download</a>
                         </span>
-                         <span th:if="${a.fileName == null}">No file</span>
+                        <span th:if="${a.fileName == null}">No file</span>
                     </td>
 
                     <td>

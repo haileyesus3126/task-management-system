@@ -28,39 +28,36 @@ public class LoginController {
         User user = userRepository.findByUsernameAndPassword(username, password);
 
         if (user != null) {
+            // Set session attributes
             session.setAttribute("username", user.getUsername());
             session.setAttribute("role", user.getRole());
-            return "redirect:/dashboard";
+
+            // Debug: log role
+            System.out.println("Logged in as: " + user.getRole());
+
+            // ✅ Role-based redirect
+            String role = user.getRole().toLowerCase();
+
+            switch (role) {
+                case "administrator":
+                    return "redirect:/tasks/dashboard";
+                case "supervisor":
+                    return "redirect:/tasks/supervisor-dashboard";
+                case "user":
+                    return "redirect:/tasks/user-dashboard";
+                default:
+                    return "redirect:/login";
+            }
+
         } else {
             model.addAttribute("error", true);
             return "login";
         }
     }
 
-    @GetMapping("/dashboard")
-    public String dashboard(HttpSession session) {
-        String role = (String) session.getAttribute("role");
-        System.out.println("Logged in role: " + role); // Debug line
-
-        if (role == null) {
-            return "redirect:/login";
-        }
-
-        if (role.equalsIgnoreCase("Administrator")) {
-            return "admin-dashboard";
-        } else if (role.equalsIgnoreCase("Supervisor")) {
-            return "supervisor-dashboard";
-        } else if (role.equalsIgnoreCase("User")) {
-            return "user-dashboard";
-        } else {
-            return "redirect:/login";
-        }
-    }
-
     @GetMapping("/logout")
     public String logout(HttpSession session) {
-        session.invalidate();  // Destroys the session
-        return "redirect:/login"; // Redirect to login page
+        session.invalidate();  // Destroy the session
+        return "redirect:/login";
     }
-
 }

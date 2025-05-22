@@ -1,12 +1,7 @@
 package com.Haile.TaskManagementSystem.controller;
 
-import com.Haile.TaskManagementSystem.model.Task;
-import com.Haile.TaskManagementSystem.model.TaskAssignment;
-import com.Haile.TaskManagementSystem.model.TaskFile;
-import com.Haile.TaskManagementSystem.repository.TaskAssignmentRepository;
-import com.Haile.TaskManagementSystem.repository.TaskFileRepository;
-import com.Haile.TaskManagementSystem.repository.TaskRepository;
-import com.Haile.TaskManagementSystem.repository.UserRepository;
+import com.Haile.TaskManagementSystem.model.*;
+import com.Haile.TaskManagementSystem.repository.*;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
@@ -34,6 +29,7 @@ public class TaskController {
     @Autowired private TaskAssignmentRepository taskAssignmentRepository;
     @Autowired private TaskFileRepository taskFileRepository;
     @Autowired private UserRepository userRepository;
+    @Autowired private LogoImageRepository logoImageRepository;
 
     @GetMapping("/assign")
     public String showAssignTaskForm(Model model, HttpSession session) {
@@ -61,20 +57,19 @@ public class TaskController {
         task.setUpdatedAt(LocalDateTime.now());
         Task savedTask = taskRepository.save(task);
 
-        if (uploadedFiles != null && uploadedFiles.length > 0) {
+        if (uploadedFiles != null) {
             for (MultipartFile file : uploadedFiles) {
                 if (file != null && !file.isEmpty()) {
                     String contentType = file.getContentType();
-                    if (contentType == null || (!contentType.startsWith("image/") && !contentType.equals("application/pdf"))) {
-                        continue;
+                    if (contentType != null && (contentType.startsWith("image/") || contentType.equals("application/pdf"))) {
+                        TaskFile taskFile = new TaskFile();
+                        taskFile.setFileName(file.getOriginalFilename());
+                        taskFile.setContentType(contentType);
+                        taskFile.setData(file.getBytes());
+                        taskFile.setUploadedAt(LocalDateTime.now());
+                        taskFile.setTask(savedTask);
+                        taskFileRepository.save(taskFile);
                     }
-                    TaskFile taskFile = new TaskFile();
-                    taskFile.setFileName(file.getOriginalFilename());
-                    taskFile.setContentType(contentType);
-                    taskFile.setData(file.getBytes());
-                    taskFile.setUploadedAt(LocalDateTime.now());
-                    taskFile.setTask(savedTask);
-                    taskFileRepository.save(taskFile);
                 }
             }
         }
@@ -89,9 +84,67 @@ public class TaskController {
             }
         }
 
-        redirectAttributes.addFlashAttribute("success", "Task assigned with file(s) successfully.");
-        return "redirect:/dashboard";
+        redirectAttributes.addFlashAttribute("success", "Task assigned successfully.");
+        return "redirect:/tasks/dashboard";
     }
+
+    @GetMapping("/dashboard")
+    public String showAdminDashboard(Model model, HttpSession session) {
+        String role = (String) session.getAttribute("role");
+        if (role == null || !(role.equalsIgnoreCase("Administrator") || role.equalsIgnoreCase("Supervisor"))) {
+            return "redirect:/login";
+        }
+
+        long totalTasks = taskRepository.count();
+        long completedTasks = taskRepository.countByStatusIgnoreCase("Completed");
+        long pendingTasks = taskRepository.countByStatusIgnoreCase("Pending");
+        long dbFileCount = taskFileRepository.count();
+
+        model.addAttribute("totalTasks", totalTasks);
+        model.addAttribute("completedTasks", completedTasks);
+        model.addAttribute("pendingTasks", pendingTasks);
+        model.addAttribute("dbFileCount", dbFileCount);
+
+        return "admin-dashboard";
+    }
+    // ✅ Fixed: Only one forgot-password mapping
+ // Only one mapping for the forgot-password form
+    @GetMapping("/forgot-password")
+    public String showForgotPasswordForm() {
+        return "forgot-password";
+    }
+
+    @PostMapping("/forgot-password")
+    public String processForgotPassword(@RequestParam("email") String email,
+                                        RedirectAttributes redirectAttributes) {
+        // TODO: Add reset logic here
+        redirectAttributes.addFlashAttribute("success", "If this email exists, a reset link has been sent.");
+        return "redirect:/tasks/forgot-password";
+    }
+
+
+
+    @GetMapping("/supervisor-dashboard")
+    public String showSupervisorDashboard(Model model, HttpSession session) {
+        String role = (String) session.getAttribute("role");
+        if (role == null || !role.equalsIgnoreCase("Supervisor")) {
+            return "redirect:/login";
+        }
+
+        long totalTasks = taskRepository.count();
+        long completedTasks = taskRepository.countByStatusIgnoreCase("Completed");
+        long pendingTasks = taskRepository.countByStatusIgnoreCase("Pending");
+        long dbFileCount = taskFileRepository.count();
+
+        model.addAttribute("totalTasks", totalTasks);
+        model.addAttribute("completedTasks", completedTasks);
+        model.addAttribute("pendingTasks", pendingTasks);
+        model.addAttribute("dbFileCount", dbFileCount);
+
+        return "supervisor-dashboard";
+    }
+
+
 
     @GetMapping("/view-files")
     public String viewTaskFiles(Model model, HttpSession session) {
@@ -118,12 +171,11 @@ public class TaskController {
             return "redirect:/tasks/all-assignments";
         }
 
-        String currentStatus = assignment.getStatus();
         String newStatus = null;
-        if (role.equalsIgnoreCase("Supervisor") && currentStatus.equalsIgnoreCase("Assigned")) {
+        if (role.equalsIgnoreCase("Supervisor") && assignment.getStatus().equalsIgnoreCase("Assigned")) {
             newStatus = "Supervisor Reviewed";
         } else if (role.equalsIgnoreCase("Administrator") &&
-                (currentStatus.equalsIgnoreCase("Assigned") || currentStatus.equalsIgnoreCase("Supervisor Reviewed"))) {
+                (assignment.getStatus().equalsIgnoreCase("Assigned") || assignment.getStatus().equalsIgnoreCase("Supervisor Reviewed"))) {
             newStatus = "Admin Reviewed";
         }
 
@@ -232,11 +284,12 @@ public class TaskController {
         if (role == null || !(role.equalsIgnoreCase("Administrator") || role.equalsIgnoreCase("Supervisor"))) {
             return "redirect:/login";
         }
+
         Task task = taskRepository.findById(id).orElse(null);
         if (task == null) {
-            model.addAttribute("error", "Task not found");
-            return "redirect:/dashboard";
+            return "redirect:/tasks/dashboard";
         }
+
         model.addAttribute("task", task);
         model.addAttribute("users", userRepository.findAll());
         return "edit-task";
@@ -247,7 +300,7 @@ public class TaskController {
         task.setUpdatedAt(LocalDateTime.now());
         taskRepository.save(task);
         redirectAttributes.addFlashAttribute("success", "Task updated.");
-        return "redirect:/dashboard";
+        return "redirect:/tasks/dashboard";
     }
 
     @GetMapping("/delete/{id}")
@@ -263,8 +316,9 @@ public class TaskController {
             taskRepository.deleteById(id);
             redirectAttributes.addFlashAttribute("success", "Task deleted.");
         }
-        return "redirect:/dashboard";
+        return "redirect:/tasks/dashboard";
     }
+
     @GetMapping("/download-user-file/{assignmentId}")
     public ResponseEntity<Resource> downloadUserFile(@PathVariable int assignmentId) {
         Optional<TaskAssignment> opt = taskAssignmentRepository.findById(assignmentId);
@@ -274,11 +328,10 @@ public class TaskController {
         if (assignment.getFileContent() == null) return ResponseEntity.notFound().build();
 
         return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + assignment.getFileName() + "\"")
-            .header(HttpHeaders.CONTENT_TYPE, assignment.getContentType())
-            .body(new ByteArrayResource(assignment.getFileContent()));
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + assignment.getFileName() + "\"")
+                .header(HttpHeaders.CONTENT_TYPE, assignment.getContentType())
+                .body(new ByteArrayResource(assignment.getFileContent()));
     }
-
 
     @GetMapping("/download-db/{fileId}")
     public ResponseEntity<Resource> downloadFileFromDb(@PathVariable int fileId) {
@@ -290,5 +343,53 @@ public class TaskController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getFileName() + "\"")
                 .header(HttpHeaders.CONTENT_TYPE, file.getContentType())
                 .body(new ByteArrayResource(file.getData()));
+    }
+
+    @GetMapping("/user-dashboard")
+    public String showUserDashboard(HttpSession session) {
+        String role = (String) session.getAttribute("role");
+        if (role == null || !role.equalsIgnoreCase("User")) {
+            return "redirect:/login";
+        }
+        return "user-dashboard";
+    }
+
+    // ✅ NEW: Serve logo from database
+    @GetMapping("/logo-image")
+    @ResponseBody
+    public ResponseEntity<byte[]> getLogoImage() {
+        Optional<LogoImage> opt = logoImageRepository.findTopByOrderByUploadedAtDesc();
+        if (opt.isEmpty()) return ResponseEntity.notFound().build();
+
+        LogoImage logo = opt.get();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, logo.getContentType())
+                .body(logo.getData());
+    }
+
+    // ✅ NEW: Upload form for logo
+    @GetMapping("/upload-logo-form")
+    public String showLogoUploadForm() {
+        return "upload-logo";
+    }
+
+    // ✅ NEW: Upload logo and save to DB
+    @PostMapping("/upload-logo")
+    public String uploadLogo(@RequestParam("file") MultipartFile file,
+                             RedirectAttributes redirectAttributes) throws IOException {
+        if (file == null || file.isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", "Please select a file.");
+            return "redirect:/tasks/upload-logo-form";
+        }
+
+        LogoImage logo = new LogoImage();
+        logo.setFileName(file.getOriginalFilename());
+        logo.setContentType(file.getContentType());
+        logo.setData(file.getBytes());
+        logo.setUploadedAt(LocalDateTime.now());
+
+        logoImageRepository.save(logo);
+        redirectAttributes.addFlashAttribute("success", "Logo uploaded successfully.");
+        return "redirect:/tasks/upload-logo-form";
     }
 }

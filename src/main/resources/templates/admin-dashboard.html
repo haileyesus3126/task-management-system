@@ -1,75 +1,205 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
+
+    <!-- Bootstrap & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
     <style>
         body {
-            background-color: #f8f9fa;
+            background-color: #f1f3f6;
             font-family: 'Segoe UI', sans-serif;
         }
 
-        .banner {
-            width: 100%;
-            height: 220px;
-            object-fit: cover;
-            border-bottom: 4px solid #198754;
+        .sidebar {
+            width: 240px;
+            background-color: #343a40;
+            height: 100vh;
+            position: fixed;
+            padding-top: 30px;
+            color: white;
+            z-index: 1000;
+        }
+
+        .sidebar a {
+            color: white;
+            display: block;
+            padding: 12px 24px;
+            text-decoration: none;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+
+        .sidebar a:hover,
+        .sidebar a.active {
+            background-color: #495057;
+            border-left: 4px solid #0d6efd;
+        }
+
+        .content {
+            margin-left: 240px;
+            padding: 40px 30px;
+        }
+
+        .banner-bar {
+            background-color: #007bff;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            color: white;
+        }
+
+        .banner-bar img {
+            height: 60px;
+            margin-bottom: 10px;
         }
 
         .dashboard-card {
-            max-width: 700px;
-            margin: -60px auto 40px auto;
-            padding: 40px;
-            border-radius: 16px;
             background: white;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border-radius: 16px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+            padding: 40px;
             text-align: center;
-            position: relative;
-            z-index: 2;
+        }
+
+        .dashboard-subtitle {
+            color: #555;
+            font-size: 16px;
+            margin-bottom: 30px;
         }
 
         .dashboard-actions .btn {
-            min-width: 170px;
-            margin: 8px;
+            min-width: 160px;
+            margin: 10px;
             font-weight: 500;
+            transition: transform 0.3s;
         }
 
-        .btn-home {
-            background-color: #f0f0f0;
-            color: #333;
+        .dashboard-actions .btn:hover {
+            transform: scale(1.05);
         }
 
-        .btn-logout {
-            border: 1px solid #dc3545;
-            color: #dc3545;
+        .stat-card {
+            border-radius: 12px;
             background: white;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
 
-        .btn-logout:hover {
-            background: #dc3545;
-            color: white;
+        .stat-card h3 {
+            font-size: 24px;
+            color: #198754;
+        }
+
+        .stat-card h6 {
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        /* ✅ Mobile responsiveness */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
+                padding: 10px 0;
+            }
+
+            .sidebar a {
+                display: inline-block;
+                padding: 10px 12px;
+                font-size: 14px;
+            }
+
+            .content {
+                margin-left: 0;
+                padding: 20px 15px;
+            }
+
+            .dashboard-card {
+                padding: 20px;
+            }
+
+            .dashboard-actions .btn {
+                width: 100%;
+                margin: 5px 0;
+            }
+
+            .stat-card {
+                margin-bottom: 15px;
+            }
+
+            .row.mt-5 {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
 <body>
 
-<!-- ✅ Top Banner -->
-<img class="banner" src="/images/admin-banner.jpg.png" alt="Admin Dashboard Banner">
+<!-- Sidebar -->
+<div class="sidebar">
+    <h4 class="text-center mb-4">Admin Panel</h4>
+    <a href="/tasks/dashboard" class="active"><i class="bi bi-speedometer2 me-2"></i> Dashboard</a>
+    <a href="/tasks/assign"><i class="bi bi-clipboard-plus me-2"></i> Assign Task</a>
+    <a href="/tasks/all-assignments"><i class="bi bi-journal-text me-2"></i> Review Tasks</a>
+    <a href="/users"><i class="bi bi-people-fill me-2"></i> Manage Users</a>
+    <a href="/tasks/view-files"><i class="bi bi-folder2-open me-2"></i> View DB Files</a>
+    <a href="/"><i class="bi bi-house me-2"></i> Home</a>
+    <a href="/logout"><i class="bi bi-box-arrow-right me-2"></i> Logout</a>
+</div>
 
-<!-- ✅ Admin Card -->
-<div class="dashboard-card">
-    <h2 class="text-success">Admin Dashboard</h2>
-    <p>Welcome, Admin! You can assign, review tasks and manage users in the system.</p>
+<!-- Content -->
+<div class="content">
 
-    <div class="dashboard-actions d-flex flex-wrap justify-content-center">
-        <a href="/tasks/assign" class="btn btn-primary">📋 Assign Task</a>
-        <a href="/tasks/all-assignments" class="btn btn-warning">📝 Review Tasks</a>
-        <a href="/users" class="btn btn-info text-white">👥 Manage Users</a>
-        <a href="/" class="btn btn-home">🏠 Back to Home</a>
-        <a href="/logout" class="btn btn-logout">🚪 Logout</a>
+    <!-- Banner -->
+    <div class="banner-bar mb-4">
+        <img src="/tasks/logo-image" alt="Logo" onerror="this.onerror=null; this.src='/images/logo-white.png';">
+        <h1>Admin Dashboard</h1>
+    </div>
 
-        <!-- ✅ NEW: Optional button to show DB-stored files (if applicable route exists) -->
-        <a href="/tasks/view-files" class="btn btn-outline-success">📁 View DB Files</a>
+    <!-- Dashboard Card -->
+    <div class="dashboard-card mt-0 rounded-4">
+        <p class="dashboard-subtitle">Welcome, Admin! You can assign, review tasks and manage users in the system.</p>
+
+        <!-- Action Buttons -->
+        <div class="dashboard-actions d-flex flex-wrap justify-content-center gap-3">
+            <a href="/tasks/assign" class="btn btn-primary"><i class="bi bi-clipboard-plus me-2"></i> Assign Task</a>
+            <a href="/tasks/all-assignments" class="btn btn-warning text-dark"><i class="bi bi-journal-text me-2"></i> Review Tasks</a>
+        </div>
+
+        <!-- Statistics -->
+        <div class="row mt-5 text-center">
+            <div class="col-md-3 mb-3">
+                <div class="stat-card">
+                    <h6>Total Tasks</h6>
+                    <h3 th:text="${totalTasks}">0</h3>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stat-card">
+                    <h6>Completed Tasks</h6>
+                    <h3 th:text="${completedTasks}">0</h3>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stat-card">
+                    <h6>Pending Tasks</h6>
+                    <h3 th:text="${pendingTasks}">0</h3>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stat-card">
+                    <h6>DB Files Stored</h6>
+                    <h3 th:text="${dbFileCount}">0</h3>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 

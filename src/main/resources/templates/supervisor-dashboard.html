@@ -1,42 +1,55 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Supervisor Dashboard</title>
+    <title>Supervisor Dashboard | Banners Hallmark</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         body {
-            background-color: #f8f9fa;
+            background-color: #f1f3f6;
             font-family: 'Segoe UI', sans-serif;
         }
 
         .banner {
             width: 100%;
-            height: 220px;
-            object-fit: cover;
-            border-bottom: 4px solid #198754;
+            background-color: #007bff;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            color: white;
+            border-bottom: 4px solid #0056b3;
+        }
+
+        .banner img {
+            height: 60px;
+            margin-bottom: 10px;
         }
 
         .dashboard-card {
-            max-width: 700px;
-            margin: -60px auto 40px auto;
-            padding: 40px;
-            border-radius: 16px;
             background: white;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border-radius: 16px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+            padding: 40px;
             text-align: center;
-            position: relative;
-            z-index: 2;
+            max-width: 600px;
+            margin: 40px auto;
+        }
+
+        .dashboard-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #007bff;
+            margin-bottom: 20px;
         }
 
         .dashboard-actions .btn {
             min-width: 170px;
-            margin: 8px;
+            margin: 10px;
             font-weight: 500;
+            transition: transform 0.3s;
         }
 
-        .btn-home {
-            background-color: #f0f0f0;
-            color: #333;
+        .dashboard-actions .btn:hover {
+            transform: scale(1.05);
         }
 
         .btn-logout {
@@ -53,20 +66,22 @@
 </head>
 <body>
 
-<!-- ✅ Top Banner -->
-<img class="banner" src="/images/admin-banner.jpg.png" alt="Supervisor Dashboard Banner">
+<!-- ✅ Top Banner with Logo -->
+<div class="banner">
+    <img src="/tasks/logo-image" alt="Logo" onerror="this.onerror=null; this.src='/images/logo-white.png';">
+    <h1>Supervisor Dashboard</h1>
+</div>
 
 <!-- ✅ Supervisor Dashboard Card -->
 <div class="dashboard-card">
-    <h2 class="text-success">Supervisor Dashboard</h2>
-    <p>Welcome, Supervisor! You can assign, review tasks and collaborate with team members.</p>
+    <div class="dashboard-title">Welcome, Supervisor!</div>
+    <p>You can assign and review tasks as part of your role.</p>
 
     <div class="dashboard-actions d-flex flex-wrap justify-content-center">
-        <a href="/tasks/assign" class="btn btn-primary">📋 Assign Task</a>
-        <a href="/tasks/all-assignments" class="btn btn-warning">📝 Review Tasks</a>
-        <a href="/tasks/view-files" class="btn btn-outline-success">📁 View DB Files</a> <!-- ✅ NEW -->
-        <a href="/" class="btn btn-home">🏠 Back to Home</a>
-        <a href="/logout" class="btn btn-logout">🚪 Logout</a>
+        <a href="/tasks/assign" class="btn btn-primary"><i class="bi bi-clipboard-plus me-2"></i> Assign Task</a>
+        <a href="/tasks/all-assignments" class="btn btn-warning text-dark"><i class="bi bi-journal-text me-2"></i> Review Tasks</a>
+        <a href="/" class="btn btn-light"><i class="bi bi-house me-2"></i> Home</a>
+        <a href="/logout" class="btn btn-logout"><i class="bi bi-box-arrow-right me-2"></i> Logout</a>
     </div>
 </div>
 

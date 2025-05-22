@@ -25,7 +25,7 @@
     <div class="card shadow p-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h4 class="text-primary">📁 Task Files Stored in Database</h4>
-            <a href="/dashboard" class="btn btn-outline-secondary btn-sm">⬅ Back to Dashboard</a>
+            <a th:href="@{/tasks/dashboard}" class="btn btn-outline-secondary btn-sm">⬅ Back to Dashboard</a>
         </div>
 
         <div th:if="${#lists.isEmpty(files)}" class="alert alert-info text-center">
@@ -61,7 +61,6 @@
                         
                         <span th:if="${!file.contentType.startsWith('image/') and file.contentType != 'application/pdf'}" class="text-muted small">No preview</span>
                     </td>
-
                     <td th:text="${#temporals.format(file.uploadedAt, 'yyyy-MM-dd HH:mm')}"></td>
                     <td>
                         <a th:href="@{/tasks/download-db/{fileId}(fileId=${file.id})}" class="btn btn-sm btn-success">⬇ Download</a>
